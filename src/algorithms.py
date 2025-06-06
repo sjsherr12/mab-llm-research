@@ -1,12 +1,12 @@
 import numpy as np
 
 # Epsilon-Greedy Algorithm
-def run_epsilon_greedy(bandit, epsilon, steps):
+def run_epsilon_greedy(bandit, steps, epsilon=0.1):
     K = bandit.K
     counts = np.zeros(K)
     values = np.zeros(K)
     regrets = []
-    optimal_mean = max(bandit.probs)
+    optimal_mean = bandit.optimal_reward()
 
     for t in range(steps):
         if np.random.rand() < epsilon:
@@ -18,7 +18,7 @@ def run_epsilon_greedy(bandit, epsilon, steps):
         counts[arm] += 1
         values[arm] += (reward - values[arm]) / counts[arm]  # update mean
 
-        regret = optimal_mean - bandit.probs[arm]
+        regret = optimal_mean - bandit.mean_reward(arm)
         regrets.append(regret)
 
     return np.cumsum(regrets)
@@ -29,20 +29,20 @@ def run_ucb(bandit, steps):
     counts = np.zeros(K)
     values = np.zeros(K)
     regrets = []
-    optimal_mean = max(bandit.probs)
+    optimal_mean = bandit.optimal_reward()
 
     for t in range(steps):
         if t < K:
             arm = t  # pull each arm once
         else:
-            ucb_values = values + np.sqrt(2 * np.log(t + 1) / (counts + 1e-5))
+            ucb_values = values + np.sqrt(2 * np.log(t + 1) / counts)
             arm = np.argmax(ucb_values)
 
         reward = bandit.pull(arm)
         counts[arm] += 1
         values[arm] += (reward - values[arm]) / counts[arm]
 
-        regret = optimal_mean - bandit.probs[arm]
+        regret = optimal_mean - bandit.mean_reward(arm)
         regrets.append(regret)
 
     return np.cumsum(regrets)
@@ -53,7 +53,7 @@ def run_thompson_sampling(bandit, steps):
     alpha = np.ones(K)
     beta = np.ones(K)
     regrets = []
-    optimal_mean = max(bandit.probs)
+    optimal_mean = bandit.optimal_reward()
 
     for t in range(steps):
         samples = np.random.beta(alpha, beta)
@@ -63,7 +63,7 @@ def run_thompson_sampling(bandit, steps):
         alpha[arm] += reward
         beta[arm] += 1 - reward
 
-        regret = optimal_mean - bandit.probs[arm]
+        regret = optimal_mean - bandit.mean_reward(arm)
         regrets.append(regret)
 
     return np.cumsum(regrets)
